@@ -1,48 +1,37 @@
 const mongoose = require("mongoose");
 
-const jobSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: true, // Title is mandatory
-    trim: true,
-  },
-  company: {
-    type: String,
-    required: true, // Company is mandatory
-    trim: true,
-  },
-  location: {
-    type: String,
-    required: true, // Location is mandatory
-    trim: true,
-  },
-  description: {
-    type: String,
-    required: true, // Description is mandatory
-  },
-  url: {
-    type: String,
-    required: true, // Job URL is mandatory
-    trim: true,
-    validate: {
-      validator: function (v) {
-        return /^(https?:\/\/[^\s]+)$/.test(v); // URL validation
-      },
-      message: (props) => `${props.value} is not a valid URL!`,
+const JobSchema = new mongoose.Schema(
+  {
+    job_title: String,
+    employer: String,
+    excerpt: String,
+    url: { type: String, unique: true },
+    post_date: Date,
+    location: {
+      lat: Number,
+      lon: Number,
     },
-  },
-  source: {
+    derived_location: {
+      lat: Number,
+      lon: Number,
+    },
+    region: String,
+    stateprov: String,
+    content: String,
+    expiry_date: Date,
     type: String,
-    required: true, // Source of the job listing
-    trim: true,
+    duration: String,
+    wage_value: Number,
+    wage_unit: String,
+    harmonized_wage: Number,
+    // nocs_2021: [String],
+    //naics: [String],
+    //skill_names: [String],
+    //job_tag_names: [String],
+    // language_names: [String],
+    // add any additional fields you need
   },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-    immutable: true, // Prevent updates to this field
-  },
-});
+  { timestamps: true }
+);
 
-jobSchema.index({ title: 1, company: 1 });
-
-module.exports = mongoose.model("Job", jobSchema);
+module.exports = mongoose.model("Job", JobSchema);

@@ -7,6 +7,8 @@ async function fetchJobPostings(page = 1, perPage = 20) {
     params.append("key", process.env.WEDATATOOLS_API_KEY);
     params.append("page", page);
     params.append("per_page", perPage);
+    params.append("includes[]", "location");
+    params.append("includes[]", "derived_location");
     // Include the fields you want to retrieve
     [
       "job_title",
@@ -33,19 +35,18 @@ async function fetchJobPostings(page = 1, perPage = 20) {
 }
 
 async function saveJobs() {
-  // Example: fetch first page with 20 results. Adjust pagination if needed.
   const data = await fetchJobPostings(1, 20);
   const jobs = data.hits || [];
 
-  // Process each job document and upsert into MongoDB
   for (const jobHit of jobs) {
-    const jobData = jobHit._source;
+    const jobData = jobHit._source; // This now includes all the fields you requested
     try {
       await Job.findOneAndUpdate(
-        { url: jobData.url }, // Using URL as unique identifier
+        { url: jobData.url }, // Using URL as a unique identifier
         jobData,
         { upsert: true, new: true }
       );
+      console.log(`Saved job: ${jobData.job_title}`);
     } catch (err) {
       console.error("Error saving job:", err);
     }
