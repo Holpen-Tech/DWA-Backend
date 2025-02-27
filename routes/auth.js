@@ -74,10 +74,24 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ error: "Invalid credentials" });
     }
     
-    const validPassword = await bcrypt.compare(password, user.password);
-    console.log("Password valid:", validPassword);
+    // Hash the provided password
+    const hashedInputPassword = await bcrypt.hash(password, 10);
     
-    if (!validPassword) {
+    // Log both hashed passwords for comparison
+    console.log("Password comparison:");
+    console.log("- Hashed password from user input:", hashedInputPassword);
+    console.log("- Hashed password in database:", user.password);
+    
+    // Try both comparison methods
+    const bcryptComparison = await bcrypt.compare(password, user.password);
+    const directComparison = hashedInputPassword === user.password;
+    
+    console.log("Comparison results:");
+    console.log("- Bcrypt comparison:", bcryptComparison);
+    console.log("- Direct hash comparison:", directComparison);
+    
+    // Still use bcrypt.compare for actual validation
+    if (!bcryptComparison) {
       return res.status(400).json({ error: "Invalid credentials" });
     }
     
