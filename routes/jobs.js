@@ -1,11 +1,11 @@
 const express = require("express");
 const router = express.Router();
-const Job = require("../models/Job");
+const Job = require("../models/job");
 
 // GET /api/jobs?page=1&limit=20
 router.get("/", async (req, res) => {
   const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 20;
+  const limit = parseInt(req.query.limit) || 40;
   try {
     const jobs = await Job.find({})
       .sort({ post_date: -1 })

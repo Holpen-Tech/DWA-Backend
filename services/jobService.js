@@ -1,7 +1,7 @@
 const axios = require("axios");
-const Job = require("../models/Job");
+const Job = require("../models/job");
 
-async function fetchJobPostings(page = 1, perPage = 20) {
+async function fetchJobPostings(page = 1, perPage = 40) {
   try {
     const params = new URLSearchParams();
     params.append("key", process.env.WEDATATOOLS_API_KEY);
@@ -9,10 +9,12 @@ async function fetchJobPostings(page = 1, perPage = 20) {
     params.append("per_page", perPage);
     params.append("includes[]", "location");
     params.append("includes[]", "derived_location");
+    params.append("fields[]", "type");
     // Include the fields you want to retrieve
     [
       "job_title",
       "employer",
+      "type",
       "excerpt",
       "url",
       "post_date",
@@ -35,7 +37,7 @@ async function fetchJobPostings(page = 1, perPage = 20) {
 }
 
 async function saveJobs() {
-  const data = await fetchJobPostings(1, 20);
+  const data = await fetchJobPostings(1, 40);
   const jobs = data.hits || [];
 
   for (const jobHit of jobs) {

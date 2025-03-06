@@ -6,18 +6,22 @@ const jobRoutes = require("./routes/jobs"); // Ensure this points to your correc
 const { saveJobs } = require("./services/jobService");
 // ... existing requires and setup
 const testRoutes = require("./routes/test");
+const authRoutes = require("./routes/auth");
 
 const app = express();
 
 // Middleware to parse JSON bodies
 app.use("/api", testRoutes);
 app.use(express.json());
+const cors = require("cors");
 
 // Connect to MongoDB
 connectDB();
 
 // Set up routes
 app.use("/api/jobs", jobRoutes);
+app.use("/api/auth", authRoutes);
+app.use(cors());
 
 // Schedule job fetching every hour (adjust cron schedule as needed)
 cron.schedule("0 * * * *", async () => {
