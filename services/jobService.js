@@ -40,13 +40,26 @@ async function saveJobs() {
 
   for (const jobHit of jobs) {
     const jobData = jobHit._source; // This now includes all the fields you requested
+
+    const latitude = jobData.derived_location?.lat || null;
+    const longitude = jobData.derived_location?.lon || null;
+
+    if (!latitude || !longitude) {
+      console.log(`Skipping job "${jobData.job_title}" due to missing coordinates.`);
+      continue; // Skip jobs without valid lat/lng
+    }
+
+    // ✅ Add latitude & longitude as top-level fields
+    jobData.latitude = latitude;
+    jobData.longitude = longitude;
+
     try {
       await Job.findOneAndUpdate(
         { url: jobData.url }, // Using URL as a unique identifier
         jobData,
         { upsert: true, new: true }
       );
-      console.log(`Saved job: ${jobData.job_title}`);
+      console.log(`Saved job: ${jobData.job_title} [Lat: ${latitude}, Lng: ${longitude}]`);
     } catch (err) {
       console.error("Error saving job:", err);
     }
