@@ -24,6 +24,10 @@ const JobSchema = new mongoose.Schema(
     wage_value: Number,
     wage_unit: String,
     harmonized_wage: Number,
+    // New fields for categorization
+    category: { type: String, default: 'Other' },
+    sector: { type: String, default: 'Service' },
+    // Original comments preserved
     // nocs_2021: [String],
     //naics: [String],
     //skill_names: [String],
