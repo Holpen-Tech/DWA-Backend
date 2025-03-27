@@ -1,9 +1,14 @@
 const express = require("express");
 const router = express.Router();
 const Job = require("../models/job");
-const { getSkillsForCategory, getSalaryRangeForCategory, getDescriptionForCategory } = require("../services/jobService");
+const { 
+  getSkillsForCategory, 
+  getSalaryRangeForCategory, 
+  getDescriptionForCategory,
+  NOC_CATEGORIES 
+} = require("../services/jobService");
 
-// GET /api/jobs?page=1&limit=20 - EXISTING ROUTE (PRESERVED)
+// GET /api/jobs?page=1&limit=20
 router.get("/", async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 40;
@@ -19,7 +24,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-// NEW ROUTE - GET /api/jobs/categories
+// GET /api/jobs/categories
 router.get("/categories", async (req, res) => {
   try {
     // Aggregate jobs by category and count
@@ -27,7 +32,9 @@ router.get("/categories", async (req, res) => {
       {
         $group: {
           _id: { category: "$category", sector: "$sector" },
-          count: { $sum: 1 }
+          count: { $sum: 1 },
+          nocCodes: { $addToSet: "$noc_code" },
+          naicsCodes: { $addToSet: "$naics_code" }
         }
       },
       { $sort: { count: -1 } }
@@ -37,7 +44,7 @@ router.get("/categories", async (req, res) => {
     let categoryId = 1;
     const result = categoryAggregation.map(item => {
       const category = item._id.category || 'Other';
-      const sector = item._id.sector || 'Service';
+      const sector = item._id.sector || 'Other';
       
       return {
         id: categoryId++,
@@ -47,8 +54,11 @@ router.get("/categories", async (req, res) => {
         description: getDescriptionForCategory(category, sector),
         skills: getSkillsForCategory(category),
         salary: getSalaryRangeForCategory(category),
-        // Generate related flag randomly for now - could be improved with real data
-        isRelated: Math.random() > 0.7
+        // Add the NOC and NAICS codes for the bubble details
+        nocCodes: item.nocCodes.filter(Boolean),
+        naicsCodes: item.naicsCodes.filter(Boolean),
+        // Generate related flag based on category similarity
+        isRelated: Math.random() > 0.7 // This would be improved with real relatedness logic
       };
     });
     
@@ -59,7 +69,7 @@ router.get("/categories", async (req, res) => {
   }
 });
 
-// NEW ROUTE - GET /api/jobs/categories/:categoryName
+// GET /api/jobs/categories/:categoryName
 router.get("/categories/:categoryName", async (req, res) => {
   try {
     const { categoryName } = req.params;
@@ -74,7 +84,7 @@ router.get("/categories/:categoryName", async (req, res) => {
     }
     
     // Get the first job to extract sector
-    const sector = jobs[0].sector || 'Service';
+    const sector = jobs[0].sector || 'Other';
     
     const categoryDetail = {
       name: categoryName,
@@ -83,13 +93,17 @@ router.get("/categories/:categoryName", async (req, res) => {
       description: getDescriptionForCategory(categoryName, sector),
       skills: getSkillsForCategory(categoryName),
       salary: getSalaryRangeForCategory(categoryName),
+      // Add the NOC and NAICS codes
+      nocCodes: [...new Set(jobs.map(job => job.noc_code).filter(Boolean))],
+      naicsCodes: [...new Set(jobs.map(job => job.naics_code).filter(Boolean))],
       jobs: jobs.map(job => ({
         id: job._id,
         title: job.job_title,
         employer: job.employer,
         location: job.region ? `${job.region}, ${job.stateprov}` : job.stateprov,
         postDate: job.post_date,
-        url: job.url
+        url: job.url,
+        type: job.type
       }))
     };
     
@@ -100,4 +114,17 @@ router.get("/categories/:categoryName", async (req, res) => {
   }
 });
 
+// Manual trigger for job fetching (for testing, visit the following link to immediately pull jobs; 
+// perfect for testing the validity of new attributes: http://localhost:3000/api/jobs/latest)
+router.get("/fetch", async (req, res) => {
+  try {
+    console.log("Manual job fetch triggered");
+    const { saveJobs } = require("../services/jobService");
+    await saveJobs();
+    res.json({ success: true, message: "Jobs fetched and saved successfully" });
+  } catch (error) {
+    console.error("Error fetching jobs:", error);
+    res.status(500).json({ error: "Failed to fetch jobs." });
+  }
+});
 module.exports = router;

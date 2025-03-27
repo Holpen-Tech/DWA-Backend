@@ -1,75 +1,100 @@
 const axios = require("axios");
 const Job = require("../models/job");
 
-// Define job categories with related keywords
-const JOB_CATEGORIES = {
-  'Administrative': ['admin', 'administrative', 'receptionist', 'clerk', 'assistant', 'secretary', 'executive assistant'],
-  'IT & Software': ['developer', 'programmer', 'software', 'web', 'data', 'network', 'system', 'computer', 'analyst', 'specialist', 'bim'],
-  'Healthcare': ['nurse', 'doctor', 'healthcare', 'medical', 'dental', 'pharmacist', 'health', 'paramedic', 'veterinarian'],
-  'Finance': ['accountant', 'finance', 'financial', 'banking', 'investment', 'account', 'insurance'],
-  'Sales & Marketing': ['sales', 'marketing', 'customer', 'retail', 'store', 'brand', 'market', 'representative'],
-  'Engineering': ['engineer', 'engineering', 'mechanical', 'electrical', 'civil', 'industrial', 'structural'],
-  'Education': ['teacher', 'instructor', 'professor', 'education', 'tutor', 'lecturer', 'school'],
-  'Hospitality': ['restaurant', 'hotel', 'chef', 'cook', 'server', 'hospitality', 'kitchen', 'food service'],
-  'Manufacturing': ['machine', 'operator', 'manufacturing', 'production', 'assembly', 'warehouse', 'technician'],
-  'Transportation': ['driver', 'delivery', 'truck', 'transport', 'logistics', 'shipping', 'pilot'],
-  'Construction': ['construction', 'carpenter', 'electrician', 'plumber', 'builder', 'architect', 'painter', 'decorator'],
-  'Management': ['manager', 'director', 'supervisor', 'management', 'executive', 'lead', 'coordinator'],
-  'Creative': ['designer', 'artist', 'creative', 'graphic', 'writer', 'content', 'media', 'journalist', 'editor'],
-  'Legal': ['lawyer', 'legal', 'attorney', 'paralegal', 'law', 'compliance'],
-  'Human Resources': ['hr', 'human resources', 'recruiter', 'recruitment', 'talent', 'personnel'],
-  'Customer Service': ['service', 'support', 'representative', 'call center', 'helpdesk'],
-  'Science & Research': ['scientist', 'researcher', 'laboratory', 'lab', 'research', 'science'],
-  'Agriculture': ['farm', 'agriculture', 'forestry', 'fishing', 'agricultural', 'fishery', 'deckhand'],
-  'Trades': ['welder', 'boilermaker', 'mechanic', 'technician', 'machinist', 'tradesperson'],
+// Map of NOC codes to category names
+// Using 2-digit major group codes for broad categories
+const NOC_CATEGORIES = {
+  "00": "Senior management",
+  "01-05": "Specialized middle management",
+  "06-09": "Middle management",
+  "11-14": "Professional occupations in business and finance",
+  "21-22": "Professional occupations in natural and applied sciences",
+  "30-31": "Professional occupations in health",
+  "32-34": "Technical and skilled occupations in health",
+  "40-42": "Professional occupations in education, law, social and government services",
+  "43-44": "Paraprofessional occupations in legal, social and education services",
+  "51-52": "Professional occupations in art and culture",
+  "53-54": "Technical occupations in art, culture and sport",
+  "62-63": "Retail sales supervisors and specialized sales occupations",
+  "64-66": "Service supervisors and specialized service occupations",
+  "67-68": "Service representatives and other customer service occupations",
+  "72-73": "Industrial, electrical and construction trades",
+  "74-75": "Maintenance and equipment operation trades",
+  "76": "Other installers, repairers and servicers",
+  "82-83": "Supervisors and technical occupations in natural resources and agriculture",
+  "84-85": "Workers in natural resources and agriculture",
+  "86": "Harvesting and landscaping supervisors and laborers",
+  "92-93": "Processing, manufacturing and utilities supervisors and central control operators",
+  "94-95": "Processing and manufacturing machine operators and assemblers",
+  "96": "Laborers in processing, manufacturing and utilities"
 };
 
-// Map categories to broader sectors
-const CATEGORY_TO_SECTOR = {
-  'Administrative': 'Service',
-  'IT & Software': 'Information & Communications Technology',
-  'Healthcare': 'Healthcare',
-  'Finance': 'Finance & Retail',
-  'Sales & Marketing': 'Finance & Retail',
-  'Engineering': 'Manufacturing',
-  'Education': 'Education & Social Services',
-  'Hospitality': 'Tourism & Hospitality',
-  'Manufacturing': 'Manufacturing',
-  'Transportation': 'Transportation',
-  'Construction': 'Construction',
-  'Management': 'Service',
-  'Creative': 'Information & Communications Technology',
-  'Legal': 'Service',
-  'Human Resources': 'Service',
-  'Customer Service': 'Service',
-  'Science & Research': 'Education & Social Services',
-  'Agriculture': 'Agriculture',
-  'Trades': 'Manufacturing',
+// Map of NAICS codes to sector names
+const NAICS_SECTORS = {
+  "11": "Agriculture, forestry, fishing and hunting",
+  "21": "Mining, quarrying, and oil and gas extraction",
+  "22": "Utilities",
+  "23": "Construction",
+  "31-33": "Manufacturing",
+  "41": "Wholesale trade",
+  "44-45": "Retail trade",
+  "48-49": "Transportation and warehousing",
+  "51": "Information and cultural industries",
+  "52": "Finance and insurance",
+  "53": "Real estate and rental and leasing",
+  "54": "Professional, scientific and technical services",
+  "55": "Management of companies and enterprises",
+  "56": "Administrative and support, waste management and remediation services",
+  "61": "Educational services",
+  "62": "Health care and social assistance",
+  "71": "Arts, entertainment and recreation",
+  "72": "Accommodation and food services",
+  "81": "Other services (except public administration)",
+  "91": "Public administration"
 };
 
-// Function to categorize a job based on its title and excerpt
-function categorizeJob(jobData) {
-  const lowerTitle = jobData.job_title.toLowerCase();
-  const lowerExcerpt = jobData.excerpt ? jobData.excerpt.toLowerCase() : '';
-  const combinedText = lowerTitle + ' ' + lowerExcerpt;
+// Function to get category name from NOC code
+function getCategoryFromNOC(nocCode) {
+  if (!nocCode) return 'Other';
   
-  // Check each category's keywords
-  for (const [category, keywords] of Object.entries(JOB_CATEGORIES)) {
-    for (const keyword of keywords) {
-      if (combinedText.includes(keyword.toLowerCase())) {
-        return {
-          category: category,
-          sector: CATEGORY_TO_SECTOR[category] || 'Service'
-        };
+  // Get the major group (first 2 digits)
+  const majorGroup = nocCode.substring(0, 2);
+  
+  // Find matching category
+  for (const [range, category] of Object.entries(NOC_CATEGORIES)) {
+    if (range.includes('-')) {
+      const [start, end] = range.split('-');
+      if (majorGroup >= start && majorGroup <= end) {
+        return category;
       }
+    } else if (majorGroup === range) {
+      return category;
     }
   }
   
-  // Default category if no match found
-  return {
-    category: 'Other',
-    sector: 'Service'
-  };
+  return 'Other';
+}
+
+// Function to get sector from NAICS code
+function getSectorFromNAICS(naicsCode) {
+  if (!naicsCode) return 'Other';
+  
+  // Get the sector (first 2 digits)
+  const sector = naicsCode.substring(0, 2);
+  
+  // Find matching sector
+  for (const [range, sectorName] of Object.entries(NAICS_SECTORS)) {
+    if (range.includes('-')) {
+      const [start, end] = range.split('-');
+      if (sector >= start && sector <= end) {
+        return sectorName;
+      }
+    } else if (sector === range) {
+      return sectorName;
+    }
+  }
+  
+  return 'Other';
 }
 
 async function fetchJobPostings(page = 1, perPage = 40) {
@@ -80,8 +105,8 @@ async function fetchJobPostings(page = 1, perPage = 40) {
     params.append("per_page", perPage);
     params.append("includes[]", "location");
     params.append("includes[]", "derived_location");
-    params.append("fields[]", "type");
-    // Include the fields you want to retrieve
+    
+    // Include basic job fields
     [
       "job_title",
       "employer",
@@ -94,6 +119,17 @@ async function fetchJobPostings(page = 1, perPage = 40) {
     ].forEach((field) => {
       params.append("includes[]", field);
     });
+    
+    // Include NOC and NAICS classification fields
+    [
+      "nocs_2021",
+      "major_group_2021",
+      "naics", 
+      "sector"
+    ].forEach((field) => {
+      params.append("includes[]", field);
+    });
+    
     params.append("orderby", "date_desc");
 
     const response = await axios.post(
@@ -112,16 +148,25 @@ async function saveJobs() {
   const jobs = data.hits || [];
 
   for (const jobHit of jobs) {
-    const jobData = jobHit._source; // This now includes all the fields you requested
+    const jobData = jobHit._source;
     
-    // Categorize the job
-    const { category, sector } = categorizeJob(jobData);
+    // Get NOC and NAICS codes
+    const nocCode = Array.isArray(jobData.nocs_2021) ? jobData.nocs_2021[0] : jobData.nocs_2021;
+    const naicsCode = Array.isArray(jobData.naics) ? jobData.naics[0] : jobData.naics;
+    
+    // Categorize based on NOC and NAICS
+    const category = getCategoryFromNOC(nocCode);
+    const sector = getSectorFromNAICS(naicsCode) || jobData.sector || 'Other';
+    
+    // Add the classification data to the job
     jobData.category = category;
     jobData.sector = sector;
+    jobData.noc_code = nocCode;
+    jobData.naics_code = naicsCode;
     
     try {
       await Job.findOneAndUpdate(
-        { url: jobData.url }, // Using URL as a unique identifier
+        { url: jobData.url },
         jobData,
         { upsert: true, new: true }
       );
@@ -134,55 +179,63 @@ async function saveJobs() {
 
 // Generate sample skills for categories
 function getSkillsForCategory(category) {
-  const commonSkills = ['Communication', 'Teamwork', 'Problem-solving'];
-  
+  // Mapping of typical skills by NOC category
   const categorySkills = {
-    'Administrative': ['Organization', 'Microsoft Office', 'Time Management', 'Attention to Detail'],
-    'IT & Software': ['Programming', 'Software Development', 'Database Management', 'System Architecture'],
-    'Healthcare': ['Patient Care', 'Medical Terminology', 'Clinical Procedures', 'Healthcare Regulations'],
-    'Finance': ['Financial Analysis', 'Budgeting', 'Accounting', 'Financial Reporting'],
-    'Sales & Marketing': ['Sales Techniques', 'Customer Relationship Management', 'Marketing Strategy', 'Social Media'],
-    'Engineering': ['Technical Design', 'Project Management', 'AutoCAD', 'Technical Documentation'],
-    'Education': ['Curriculum Development', 'Classroom Management', 'Student Assessment', 'Teaching Methods'],
-    'Hospitality': ['Customer Service', 'Food Safety', 'Reservation Systems', 'Event Planning'],
-    'Manufacturing': ['Quality Control', 'Manufacturing Processes', 'Safety Procedures', 'Inventory Management'],
-    'Transportation': ['Logistics Management', 'Route Planning', 'Vehicle Maintenance', 'Safety Compliance'],
-    'Construction': ['Blueprint Reading', 'Construction Methods', 'Safety Standards', 'Tool Operation'],
-    'Management': ['Leadership', 'Strategic Planning', 'Staff Development', 'Performance Management'],
-    'Creative': ['Design Software', 'Content Creation', 'Visual Communication', 'Creative Problem Solving'],
-    'Legal': ['Legal Research', 'Document Preparation', 'Regulatory Compliance', 'Case Management'],
-    'Human Resources': ['Recruiting', 'Employee Relations', 'Benefits Administration', 'HR Policies'],
-    'Customer Service': ['Conflict Resolution', 'Product Knowledge', 'Active Listening', 'Client Relationship'],
-    'Science & Research': ['Research Methodology', 'Data Analysis', 'Laboratory Techniques', 'Scientific Writing'],
-    'Agriculture': ['Crop Management', 'Agricultural Equipment', 'Sustainable Practices', 'Resource Planning'],
-    'Trades': ['Technical Proficiency', 'Blueprint Reading', 'Safety Procedures', 'Tool Operation'],
+    "Senior management": ['Strategic Planning', 'Leadership', 'Decision Making', 'Business Development', 'Financial Management'],
+    "Specialized middle management": ['Project Management', 'Team Leadership', 'Budget Management', 'Strategic Planning', 'Performance Management'],
+    "Middle management": ['Team Leadership', 'Operations Management', 'Budget Control', 'Problem Solving', 'Staff Development'],
+    "Professional occupations in business and finance": ['Financial Analysis', 'Business Strategy', 'Risk Management', 'Regulatory Compliance', 'Data Analysis'],
+    "Professional occupations in natural and applied sciences": ['Research', 'Technical Analysis', 'Problem Solving', 'Project Management', 'Technical Documentation'],
+    "Professional occupations in health": ['Patient Care', 'Clinical Assessment', 'Treatment Planning', 'Health Promotion', 'Medical Record Management'],
+    "Technical and skilled occupations in health": ['Patient Support', 'Medical Testing', 'Equipment Operation', 'Clinical Procedures', 'Record Keeping'],
+    "Professional occupations in education, law, social and government services": ['Curriculum Development', 'Legal Research', 'Policy Analysis', 'Case Management', 'Program Development'],
+    "Paraprofessional occupations in legal, social and education services": ['Research Support', 'Client Assessment', 'Documentation', 'Program Implementation', 'Administrative Support'],
+    "Professional occupations in art and culture": ['Creative Direction', 'Content Development', 'Artistic Design', 'Production Management', 'Performance'],
+    "Technical occupations in art, culture and sport": ['Technical Support', 'Equipment Operation', 'Design Implementation', 'Production Assistance', 'Performance Support'],
+    "Retail sales supervisors and specialized sales occupations": ['Customer Service', 'Sales Techniques', 'Inventory Management', 'Staff Supervision', 'Merchandising'],
+    "Service supervisors and specialized service occupations": ['Customer Service', 'Team Supervision', 'Quality Assurance', 'Service Delivery', 'Process Improvement'],
+    "Service representatives and other customer service occupations": ['Customer Support', 'Problem Resolution', 'Communication', 'Service Delivery', 'Information Provision'],
+    "Industrial, electrical and construction trades": ['Technical Skills', 'Equipment Operation', 'Blueprint Reading', 'Installation', 'Troubleshooting'],
+    "Maintenance and equipment operation trades": ['Equipment Maintenance', 'Mechanical Repair', 'Troubleshooting', 'Safety Procedures', 'Preventative Maintenance'],
+    "Other installers, repairers and servicers": ['Installation', 'Repair', 'Testing', 'Maintenance', 'Customer Service'],
+    "Supervisors and technical occupations in natural resources and agriculture": ['Resource Management', 'Team Supervision', 'Technical Operations', 'Safety Oversight', 'Quality Control'],
+    "Workers in natural resources and agriculture": ['Equipment Operation', 'Resource Extraction', 'Agricultural Production', 'Physical Labor', 'Safety Procedures'],
+    "Harvesting and landscaping supervisors and laborers": ['Landscape Maintenance', 'Equipment Operation', 'Planting', 'Irrigation', 'Team Coordination'],
+    "Processing, manufacturing and utilities supervisors and central control operators": ['Process Oversight', 'Quality Control', 'Team Supervision', 'Equipment Monitoring', 'Safety Management'],
+    "Processing and manufacturing machine operators and assemblers": ['Machine Operation', 'Quality Inspection', 'Assembly', 'Production Monitoring', 'Technical Procedures'],
+    "Laborers in processing, manufacturing and utilities": ['Material Handling', 'Equipment Operation', 'Product Assembly', 'Quality Checking', 'Physical Labor'],
+    "Other": ['Communication', 'Teamwork', 'Problem Solving', 'Organization', 'Attention to Detail']
   };
   
-  return [...commonSkills, ...(categorySkills[category] || [])].slice(0, 5);
+  return categorySkills[category] || ['Communication', 'Teamwork', 'Problem Solving', 'Organization', 'Attention to Detail'];
 }
 
 // Generate approximate salary ranges for categories
 function getSalaryRangeForCategory(category) {
   const salaryRanges = {
-    'IT & Software': '$65,000 - $120,000',
-    'Healthcare': '$60,000 - $110,000',
-    'Finance': '$55,000 - $100,000',
-    'Engineering': '$70,000 - $130,000',
-    'Education': '$50,000 - $90,000',
-    'Hospitality': '$35,000 - $70,000',
-    'Manufacturing': '$45,000 - $85,000',
-    'Transportation': '$40,000 - $80,000',
-    'Construction': '$50,000 - $95,000',
-    'Management': '$65,000 - $140,000',
-    'Creative': '$45,000 - $90,000',
-    'Legal': '$70,000 - $150,000',
-    'Administrative': '$35,000 - $75,000',
-    'Human Resources': '$55,000 - $95,000',
-    'Customer Service': '$35,000 - $65,000',
-    'Science & Research': '$60,000 - $110,000',
-    'Agriculture': '$35,000 - $70,000',
-    'Trades': '$45,000 - $90,000',
-    'Sales & Marketing': '$45,000 - $95,000',
+    "Senior management": '$100,000 - $200,000+',
+    "Specialized middle management": '$85,000 - $150,000',
+    "Middle management": '$70,000 - $120,000',
+    "Professional occupations in business and finance": '$65,000 - $130,000',
+    "Professional occupations in natural and applied sciences": '$70,000 - $140,000',
+    "Professional occupations in health": '$75,000 - $200,000',
+    "Technical and skilled occupations in health": '$55,000 - $90,000',
+    "Professional occupations in education, law, social and government services": '$65,000 - $150,000',
+    "Paraprofessional occupations in legal, social and education services": '$45,000 - $80,000',
+    "Professional occupations in art and culture": '$50,000 - $100,000',
+    "Technical occupations in art, culture and sport": '$40,000 - $85,000',
+    "Retail sales supervisors and specialized sales occupations": '$40,000 - $80,000',
+    "Service supervisors and specialized service occupations": '$40,000 - $75,000',
+    "Service representatives and other customer service occupations": '$35,000 - $60,000',
+    "Industrial, electrical and construction trades": '$50,000 - $100,000',
+    "Maintenance and equipment operation trades": '$45,000 - $90,000',
+    "Other installers, repairers and servicers": '$40,000 - $75,000',
+    "Supervisors and technical occupations in natural resources and agriculture": '$50,000 - $95,000',
+    "Workers in natural resources and agriculture": '$35,000 - $75,000',
+    "Harvesting and landscaping supervisors and laborers": '$35,000 - $65,000',
+    "Processing, manufacturing and utilities supervisors and central control operators": '$55,000 - $95,000',
+    "Processing and manufacturing machine operators and assemblers": '$40,000 - $75,000',
+    "Laborers in processing, manufacturing and utilities": '$35,000 - $65,000'
   };
   
   return salaryRanges[category] || '$40,000 - $80,000';
@@ -190,16 +243,65 @@ function getSalaryRangeForCategory(category) {
 
 // Generate descriptions for job categories
 function getDescriptionForCategory(category, sector) {
-  return `${category} professionals work in the ${sector} sector. They provide specialized services and require specific skills for their roles. This field offers various opportunities for career development and growth.`;
+  const descriptions = {
+    "Senior management": `Senior management professionals lead organizations and departments, making strategic decisions that guide business operations. They develop policies, manage budgets, and oversee staff in the ${sector} sector.`,
+    
+    "Specialized middle management": `Specialized middle management professionals oversee specific departments or functions within organizations in the ${sector} sector. They implement strategic initiatives, manage teams, and report to senior executives.`,
+    
+    "Middle management": `Middle management professionals supervise operational activities and staff in the ${sector} sector. They implement policies, monitor performance, and ensure organizational objectives are met.`,
+    
+    "Professional occupations in business and finance": `Business and finance professionals provide specialized services such as accounting, financial analysis, human resources, and business consulting in the ${sector} sector. They analyze data, develop reports, and provide strategic recommendations.`,
+    
+    "Professional occupations in natural and applied sciences": `Natural and applied sciences professionals conduct research, develop new technologies, and solve complex problems in the ${sector} sector. They apply scientific and technical knowledge to advance innovation.`,
+    
+    "Professional occupations in health": `Health professionals diagnose, treat, and prevent illness and injury in the ${sector} sector. They provide direct patient care, conduct health assessments, and develop treatment plans.`,
+    
+    "Technical and skilled occupations in health": `Health technicians and skilled practitioners support healthcare delivery in the ${sector} sector. They operate medical equipment, conduct tests, and assist health professionals in patient care.`,
+    
+    "Professional occupations in education, law, social and government services": `Education, law, social, and government professionals provide specialized services in the ${sector} sector. They teach, provide legal counsel, develop social programs, and implement government policies.`,
+    
+    "Paraprofessional occupations in legal, social and education services": `Paraprofessionals in legal, social, and education services support professional practitioners in the ${sector} sector. They assist with research, documentation, client services, and program implementation.`,
+    
+    "Professional occupations in art and culture": `Art and culture professionals create, produce, and promote artistic and cultural works in the ${sector} sector. They express creative vision, develop content, and manage cultural productions.`,
+    
+    "Technical occupations in art, culture and sport": `Art, culture, and sport technicians provide technical support for creative and athletic activities in the ${sector} sector. They operate equipment, implement designs, and support performances and competitions.`,
+    
+    "Retail sales supervisors and specialized sales occupations": `Retail and sales professionals manage retail operations and specialized sales functions in the ${sector} sector. They supervise staff, develop merchandising strategies, and optimize sales performance.`,
+    
+    "Service supervisors and specialized service occupations": `Service supervisors and specialists manage service delivery and perform specialized service functions in the ${sector} sector. They ensure customer satisfaction, supervise staff, and implement service protocols.`,
+    
+    "Service representatives and other customer service occupations": `Customer service representatives provide direct assistance to customers in the ${sector} sector. They respond to inquiries, resolve issues, and ensure positive customer experiences.`,
+    
+    "Industrial, electrical and construction trades": `Industrial, electrical, and construction tradespeople build, install, and maintain structures and systems in the ${sector} sector. They apply technical skills to construction, electrical, and industrial projects.`,
+    
+    "Maintenance and equipment operation trades": `Maintenance and equipment operation tradespeople maintain and operate machinery and equipment in the ${sector} sector. They conduct inspections, perform repairs, and ensure safe and efficient operations.`,
+    
+    "Other installers, repairers and servicers": `Installers, repairers, and servicers set up, maintain, and fix various equipment and systems in the ${sector} sector. They troubleshoot issues, replace components, and ensure proper functioning.`,
+    
+    "Supervisors and technical occupations in natural resources and agriculture": `Natural resources and agriculture supervisors and technicians manage and support extraction and production activities in the ${sector} sector. They oversee operations, implement technical procedures, and ensure resource management.`,
+    
+    "Workers in natural resources and agriculture": `Natural resources and agriculture workers perform extraction, harvesting, and production tasks in the ${sector} sector. They operate equipment, follow production protocols, and support resource operations.`,
+    
+    "Harvesting and landscaping supervisors and laborers": `Harvesting and landscaping personnel maintain grounds, plant and harvest crops, and support outdoor environments in the ${sector} sector. They implement landscaping designs, manage plants, and maintain outdoor spaces.`,
+    
+    "Processing, manufacturing and utilities supervisors and central control operators": `Processing, manufacturing, and utilities supervisors and operators oversee production processes in the ${sector} sector. They monitor equipment, ensure quality standards, and maintain safe operations.`,
+    
+    "Processing and manufacturing machine operators and assemblers": `Processing and manufacturing operators run machinery and assemble products in the ${sector} sector. They follow production procedures, monitor quality, and maintain efficient operations.`,
+    
+    "Laborers in processing, manufacturing and utilities": `Processing, manufacturing, and utilities laborers perform manual tasks in production and utility operations in the ${sector} sector. They handle materials, assist with assembly, and support production activities.`
+  };
+  
+  return descriptions[category] || `${category} professionals work in the ${sector} sector. They provide specialized services and require specific skills for their roles. This field offers various opportunities for career development and growth.`;
 }
 
 module.exports = {
   fetchJobPostings,
   saveJobs,
-  categorizeJob,
+  getCategoryFromNOC,
+  getSectorFromNAICS,
   getSkillsForCategory,
   getSalaryRangeForCategory,
   getDescriptionForCategory,
-  JOB_CATEGORIES,
-  CATEGORY_TO_SECTOR
+  NOC_CATEGORIES,
+  NAICS_SECTORS
 };
