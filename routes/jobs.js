@@ -4,13 +4,8 @@ const Job = require("../models/job");
 
 // GET /api/jobs?page=1&limit=20
 router.get("/", async (req, res) => {
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 40;
   try {
-    const jobs = await Job.find({})
-      .sort({ post_date: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit);
+    const jobs = await Job.find({}).sort({ post_date: -1 });
     res.json(jobs);
   } catch (error) {
     console.error("Error fetching jobs:", error);

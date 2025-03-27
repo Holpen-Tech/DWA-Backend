@@ -26,7 +26,7 @@ const JobSchema = new mongoose.Schema(
     harmonized_wage: Number,
     // nocs_2021: [String],
     //naics: [String],
-    //skill_names: [String],
+    skill_names: [String],
     //job_tag_names: [String],
     // language_names: [String],
     // add any additional fields you need
