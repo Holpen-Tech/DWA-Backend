@@ -33,10 +33,35 @@ router.post("/login", async (req, res) => {
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
       expiresIn: "1h",
     });
-    res.json({ success: true, token }); // Add success: true
+    res.json({ success: true, token });
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Validate token (new route)
+router.get("/validate-token", async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res
+        .status(401)
+        .json({ valid: false, message: "No token provided" });
+    }
+
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const user = await User.findById(decoded.userId).select("-password"); // exclude password
+    if (!user) {
+      return res.status(401).json({ valid: false, message: "User not found" });
+    }
+
+    res.json({ valid: true, user });
+  } catch (error) {
+    console.error("Token validation failed:", error);
+    res.status(401).json({ valid: false, message: "Invalid or expired token" });
   }
 });
 

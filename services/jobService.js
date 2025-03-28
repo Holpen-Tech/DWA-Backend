@@ -116,6 +116,8 @@ async function fetchJobPostings(page = 1, perPage = 40) {
       "post_date",
       "region",
       "stateprov",
+      "harmonized_wage",
+      "skill_names",
     ].forEach((field) => {
       params.append("includes[]", field);
     });

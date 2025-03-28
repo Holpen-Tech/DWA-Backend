@@ -35,6 +35,12 @@ const JobSchema = new mongoose.Schema(
     category: { type: String, default: 'Other' },
     noc_code: String,
     naics_code: String,
+
+    skill_names: [String],
+    
+    //job_tag_names: [String],
+    // language_names: [String],
+    // add any additional fields you need
   },
   { timestamps: true }
 );
