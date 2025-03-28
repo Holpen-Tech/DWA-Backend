@@ -24,16 +24,17 @@ const JobSchema = new mongoose.Schema(
     wage_value: Number,
     wage_unit: String,
     harmonized_wage: Number,
-    // New fields for categorization
+    
+    // Added NOC and NAICS classification fields
+    nocs_2021: [String],
+    major_group_2021: [String],
+    naics: [String],
+    sector: String,
+    
+    // Our derived categorization
     category: { type: String, default: 'Other' },
-    sector: { type: String, default: 'Service' },
-    // Original comments preserved
-    // nocs_2021: [String],
-    //naics: [String],
-    //skill_names: [String],
-    //job_tag_names: [String],
-    // language_names: [String],
-    // add any additional fields you need
+    noc_code: String,
+    naics_code: String,
   },
   { timestamps: true }
 );
