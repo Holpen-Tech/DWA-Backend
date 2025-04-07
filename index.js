@@ -7,7 +7,6 @@ const connectDB = require("./config/db");
 const jobRoutes = require("./routes/jobs");
 const authRoutes = require("./routes/auth");
 const testRoutes = require("./routes/test");
-const authRoutes = require("./routes/auth");
 const { saveJobs } = require("./services/jobService");
 
 const app = express();
@@ -17,7 +16,6 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
-const cors = require("cors");
 
 // Serve static GEOJson file from the public directory
 app.use("/static", express.static(path.join(__dirname, "public")));

@@ -9,25 +9,11 @@ const {
   getMedianSalaryForCategory
 } = require("../services/jobService");
 
-// Existing route - GET /api/jobs?page=1&limit=20
+// GET /api/jobs?page=1&limit=20
 router.get("/", async (req, res) => {
   try {
-    const jobs = await Job.find({})
-      .sort({ post_date: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit);
-    
-    // Add total count for pagination
-    const total = await Job.countDocuments();
-    
-    res.json({
-      jobs,
-      pagination: {
-        total,
-        page,
-        pages: Math.ceil(total / limit)
-      }
-    });
+    const jobs = await Job.find({}).sort({ post_date: -1 });
+    res.json(jobs);
   } catch (error) {
     console.error("Error fetching jobs:", error);
     res.status(500).json({ error: "Failed to fetch jobs." });
