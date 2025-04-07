@@ -4,6 +4,23 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/user");
 const router = express.Router();
 
+// Middleware to verify token
+const verifyToken = (req, res, next) => {
+  const token = req.header('Authorization')?.replace('Bearer ', '');
+  
+  if (!token) {
+    return res.status(401).json({ error: 'Access denied. No token provided.' });
+  }
+
+  try {
+    const verified = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = verified;
+    next();
+  } catch (error) {
+    res.status(400).json({ error: 'Invalid token.' });
+  }
+};
+
 // Register a new user
 router.post("/register", async (req, res) => {
   const { fullName, email, password } = req.body;
@@ -14,6 +31,7 @@ router.post("/register", async (req, res) => {
 });
 
 // Login a user
+// auth.js
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -62,6 +80,20 @@ router.get("/validate-token", async (req, res) => {
   } catch (error) {
     console.error("Token validation failed:", error);
     res.status(401).json({ valid: false, message: "Invalid or expired token" });
+  }
+});
+
+// Get user profile
+router.get("/profile", verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select('-password');
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    res.json(user);
+  } catch (error) {
+    console.error("Profile fetch error:", error);
+    res.status(500).json({ error: "Failed to fetch profile" });
   }
 });
 
