@@ -88,14 +88,26 @@ router.get("/map", async (req, res) => {
     );
 
     // ✅ Ensure the response always contains lat/lng
-    const formattedJobs = jobs.map(job => ({
-      job_title: job.job_title,
-      employer: job.employer,
-      post_date: job.post_date,
-      url: job.url,
-      latitude: job.latitude || job.derived_location?.lat, // Use lat if available, fallback to derived_location.lat
-      longitude: job.longitude || job.derived_location?.lon, // Use lon if available, fallback to derived_location.lon
-    }));
+    const formattedJobs = jobs.map(job => {
+
+      const title = job.job_title.toLowerCase();
+      let job_type = "Other";
+
+      if (title.includes("full time")) job_type = "FT";
+      else if (title.includes("part time")) job_type = "PT";
+      else if (title.includes("casual")) job_type = "Casual";
+
+      return {
+        _id: job._id,
+        job_title: job.job_title,
+        employer: job.employer,
+        post_date: job.post_date,
+        url: job.url,
+        latitude: job.latitude || job.derived_location?.lat, // Use lat if available, fallback to derived_location.lat
+        longitude: job.longitude || job.derived_location?.lon, // Use lon if available, fallback to derived_location.lon
+        job_type,
+      }
+    });
 
     res.json({ jobs: formattedJobs });
   } catch (error) {

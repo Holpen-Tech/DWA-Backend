@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const cron = require("node-cron");
 const cors = require('cors');
+const path = require("path")
 const connectDB = require("./config/db");
 const jobRoutes = require("./routes/jobs");
 const authRoutes = require("./routes/auth");
@@ -10,9 +11,14 @@ const { saveJobs } = require("./services/jobService");
 
 const app = express();
 
+
+
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Serve static GEOJson file from the public directory
+app.use("/static", express.static(path.join(__dirname, "public")));
 
 // Connect to MongoDB
 connectDB();
@@ -38,6 +44,7 @@ const corsOptions = {
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
+
 
 // Error handler
 app.use((req, res, next) => {
