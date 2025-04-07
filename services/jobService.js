@@ -1,5 +1,5 @@
 const axios = require("axios");
-const Job = require("../models/job");
+const Job = require("../models/Job");
 
 // Map of NOC codes to category names
 // Using 2-digit major group codes for broad categories
@@ -243,6 +243,37 @@ function getSalaryRangeForCategory(category) {
   return salaryRanges[category] || '$40,000 - $80,000';
 }
 
+// Extract median value from salary ranges
+function getMedianSalaryForCategory(category) {
+  const salaryRanges = {
+    "Senior management": 150000,
+    "Specialized middle management": 117500,
+    "Middle management": 95000,
+    "Professional occupations in business and finance": 97500,
+    "Professional occupations in natural and applied sciences": 105000,
+    "Professional occupations in health": 137500,
+    "Technical and skilled occupations in health": 72500,
+    "Professional occupations in education, law, social and government services": 107500,
+    "Paraprofessional occupations in legal, social and education services": 62500,
+    "Professional occupations in art and culture": 75000,
+    "Technical occupations in art, culture and sport": 62500,
+    "Retail sales supervisors and specialized sales occupations": 60000,
+    "Service supervisors and specialized service occupations": 57500,
+    "Service representatives and other customer service occupations": 47500,
+    "Industrial, electrical and construction trades": 75000,
+    "Maintenance and equipment operation trades": 67500,
+    "Other installers, repairers and servicers": 57500,
+    "Supervisors and technical occupations in natural resources and agriculture": 72500,
+    "Workers in natural resources and agriculture": 55000,
+    "Harvesting and landscaping supervisors and laborers": 50000,
+    "Processing, manufacturing and utilities supervisors and central control operators": 75000,
+    "Processing and manufacturing machine operators and assemblers": 57500,
+    "Laborers in processing, manufacturing and utilities": 50000
+  };
+  
+  return salaryRanges[category] || 60000; // Default median value
+}
+
 // Generate descriptions for job categories
 function getDescriptionForCategory(category, sector) {
   const descriptions = {
@@ -303,6 +334,7 @@ module.exports = {
   getSectorFromNAICS,
   getSkillsForCategory,
   getSalaryRangeForCategory,
+  getMedianSalaryForCategory,
   getDescriptionForCategory,
   NOC_CATEGORIES,
   NAICS_SECTORS

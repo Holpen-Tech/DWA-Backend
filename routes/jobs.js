@@ -1,11 +1,12 @@
 const express = require("express");
 const router = express.Router();
-const Job = require("../models/job");
+const Job = require("../models/Job");
 const { 
   getSkillsForCategory, 
   getSalaryRangeForCategory, 
   getDescriptionForCategory,
-  NOC_CATEGORIES 
+  NOC_CATEGORIES, 
+  getMedianSalaryForCategory
 } = require("../services/jobService");
 
 // GET /api/jobs?page=1&limit=20
@@ -49,6 +50,7 @@ router.get("/categories", async (req, res) => {
         description: getDescriptionForCategory(category, sector),
         skills: getSkillsForCategory(category),
         salary: getSalaryRangeForCategory(category),
+        medianSalary: getMedianSalaryForCategory(category),
         // Add the NOC and NAICS codes for the bubble details
         nocCodes: item.nocCodes.filter(Boolean),
         naicsCodes: item.naicsCodes.filter(Boolean),
@@ -88,6 +90,7 @@ router.get("/categories/:categoryName", async (req, res) => {
       description: getDescriptionForCategory(categoryName, sector),
       skills: getSkillsForCategory(categoryName),
       salary: getSalaryRangeForCategory(categoryName),
+      medianSalary: getMedianSalaryForCategory(categoryName),
       // Add the NOC and NAICS codes
       nocCodes: [...new Set(jobs.map(job => job.noc_code).filter(Boolean))],
       naicsCodes: [...new Set(jobs.map(job => job.naics_code).filter(Boolean))],
